@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Tab Workspaces",
+  "version": "0.1.0",
+  "description": "Save tab sessions into collections and organize tabs into workspaces.",
+  "minimum_chrome_version": "114",
+  "icons": { "16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png" },
+  "action": { "default_title": "Tab Workspaces", "default_popup": "popup.html" },
+  "background": { "service_worker": "background.js", "type": "module" },
+  "chrome_url_overrides": { "newtab": "newtab.html" },
+  "side_panel": { "default_path": "sidepanel.html" },
+  "omnibox": { "keyword": "to" },
+  "permissions": ["tabs", "storage", "unlimitedStorage", "contextMenus", "sidePanel"],
+  "optional_permissions": ["tabGroups", "history"],
+  "commands": {
+    "save-session": {
+      "suggested_key": { "default": "Alt+Shift+S" },
+      "description": "Save all tabs in this window to a collection"
+    },
+    "open-manager": {
+      "suggested_key": { "default": "Alt+Shift+M" },
+      "description": "Open the collections manager"
+    }
+  }
+}

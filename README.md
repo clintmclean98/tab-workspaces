@@ -11,7 +11,24 @@ extensions' public behavior and architecture informed the design.
 
 ## Status
 
-Early planning. Nothing is built yet.
+Early scaffold. Working today: save a window's tabs into a collection (popup button
+or `Alt+Shift+S`), view and delete collections on the new-tab page and side panel,
+and open a collection's tabs. Workspaces, search and go-links are not built yet.
+
+## Development
+
+```
+npm install
+npm run build        # outputs the unpacked extension to dist/
+npm run dev          # rebuild on change
+```
+
+Then open `chrome://extensions`, enable Developer mode, choose **Load unpacked**
+and select the `dist/` folder.
+
+Layout: `src/background` (service worker), `src/popup`, `src/newtab`,
+`src/sidepanel` (views), `src/shared` (types and the `chrome.storage.local` store),
+`public/manifest.json`.
 
 ## Planned features
 
