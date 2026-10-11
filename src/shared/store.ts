@@ -1,69 +1,75 @@
 import { moveItem } from "./array";
-import type { Card, Collection } from "./types";
+import { tabToCard } from "./cards";
+import type { Card, Collection, Workspace } from "./types";
 
-// Each collection lives under its own key. A save writes one key and a delete
-// removes one key, so writers in different extension contexts (service worker,
-// popup, new tab) can never overwrite each other's changes.
-const PREFIX = "collection:";
-const keyOf = (id: string) => PREFIX + id;
+// Every record lives under its own key ("collection:<id>", "workspace:<id>"). A
+// save writes one key and a delete removes one key, so writers in different
+// extension contexts (service worker, popup, new tab) never overwrite each other.
+const COLLECTION = "collection:";
+const WORKSPACE = "workspace:";
 
-export async function listCollections(): Promise<Collection[]> {
+async function listByPrefix<T>(prefix: string): Promise<T[]> {
   const all = await chrome.storage.local.get(null);
   return Object.entries(all)
-    .filter(([key]) => key.startsWith(PREFIX))
-    .map(([, value]) => value as Collection)
-    .sort((a, b) => b.createdAt - a.createdAt);
+    .filter(([key]) => key.startsWith(prefix))
+    .map(([, value]) => value as T);
 }
 
-export function deleteCollection(id: string): Promise<void> {
-  return chrome.storage.local.remove(keyOf(id));
+async function getRecord<T>(key: string): Promise<T | undefined> {
+  return (await chrome.storage.local.get(key))[key] as T | undefined;
 }
 
-/** Read-modify-write a single collection. Only that collection's key is touched. */
-async function updateCollection(id: string, mutate: (c: Collection) => void): Promise<void> {
-  const key = keyOf(id);
-  const collection = (await chrome.storage.local.get(key))[key] as Collection | undefined;
-  if (!collection) return;
-  mutate(collection);
-  await chrome.storage.local.set({ [key]: collection });
+/** Read-modify-write a single record. Only that record's key is touched. */
+async function updateRecord<T>(key: string, mutate: (record: T) => void): Promise<void> {
+  const record = await getRecord<T>(key);
+  if (!record) return;
+  mutate(record);
+  await chrome.storage.local.set({ [key]: record });
+}
+
+function onPrefixChange(prefix: string, cb: () => void): () => void {
+  const listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+    if (area === "local" && Object.keys(changes).some((k) => k.startsWith(prefix))) cb();
+  };
+  chrome.storage.onChanged.addListener(listener);
+  return () => chrome.storage.onChanged.removeListener(listener);
+}
+
+// ---- collections ----
+
+const collectionKey = (id: string) => COLLECTION + id;
+
+export async function listCollections(): Promise<Collection[]> {
+  return (await listByPrefix<Collection>(COLLECTION)).sort((a, b) => b.createdAt - a.createdAt);
+}
+
+export const onCollectionsChange = (cb: () => void) => onPrefixChange(COLLECTION, cb);
+
+export const deleteCollection = (id: string) => chrome.storage.local.remove(collectionKey(id));
+
+export function openCollection(collection: Collection): Promise<chrome.tabs.Tab[]> {
+  return Promise.all(collection.cards.map((c) => chrome.tabs.create({ url: c.url, active: false })));
 }
 
 export const renameCollection = (id: string, title: string) =>
-  updateCollection(id, (c) => void (c.title = title.trim() || c.title));
+  updateRecord<Collection>(collectionKey(id), (c) => void (c.title = title.trim() || c.title));
 
 export const deleteCard = (collectionId: string, cardId: string) =>
-  updateCollection(collectionId, (c) => void (c.cards = c.cards.filter((k) => k.id !== cardId)));
+  updateRecord<Collection>(collectionKey(collectionId), (c) => void (c.cards = c.cards.filter((k) => k.id !== cardId)));
 
 export const setCardNote = (collectionId: string, cardId: string, note: string) =>
-  updateCollection(collectionId, (c) => {
+  updateRecord<Collection>(collectionKey(collectionId), (c) => {
     const card = c.cards.find((k) => k.id === cardId);
     if (card) card.note = note.trim() || undefined;
   });
 
 /** Move a card to the position currently held by another card in the same collection. */
 export const moveCard = (collectionId: string, cardId: string, beforeCardId: string) =>
-  updateCollection(collectionId, (c) => {
+  updateRecord<Collection>(collectionKey(collectionId), (c) => {
     const from = c.cards.findIndex((k) => k.id === cardId);
     const to = c.cards.findIndex((k) => k.id === beforeCardId);
     if (from >= 0 && to >= 0) c.cards = moveItem(c.cards, from, to);
   });
-
-export function onCollectionsChange(cb: () => void): () => void {
-  const listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
-    if (area === "local" && Object.keys(changes).some((k) => k.startsWith(PREFIX))) cb();
-  };
-  chrome.storage.onChanged.addListener(listener);
-  return () => chrome.storage.onChanged.removeListener(listener);
-}
-
-export function openCollection(collection: Collection): Promise<chrome.tabs.Tab[]> {
-  return Promise.all(collection.cards.map((c) => chrome.tabs.create({ url: c.url, active: false })));
-}
-
-function tabToCard(tab: chrome.tabs.Tab): Card | null {
-  if (!tab.url || !/^https?:\/\//.test(tab.url)) return null;
-  return { id: crypto.randomUUID(), url: tab.url, title: tab.title || tab.url, favIconUrl: tab.favIconUrl };
-}
 
 /** Save the given tabs as a new collection. Returns it, or null if nothing was savable. */
 export async function saveTabsAsCollection(
@@ -73,6 +79,32 @@ export async function saveTabsAsCollection(
   const cards = tabs.map(tabToCard).filter((c): c is Card => c !== null);
   if (cards.length === 0) return null;
   const collection: Collection = { id: crypto.randomUUID(), title, createdAt: Date.now(), cards };
-  await chrome.storage.local.set({ [keyOf(collection.id)]: collection });
+  await chrome.storage.local.set({ [collectionKey(collection.id)]: collection });
   return collection;
 }
+
+// ---- workspaces ----
+
+const workspaceKey = (id: string) => WORKSPACE + id;
+
+export async function listWorkspaces(): Promise<Workspace[]> {
+  return (await listByPrefix<Workspace>(WORKSPACE)).sort((a, b) => a.createdAt - b.createdAt);
+}
+
+export const onWorkspacesChange = (cb: () => void) => onPrefixChange(WORKSPACE, cb);
+
+export const getWorkspace = (id: string) => getRecord<Workspace>(workspaceKey(id));
+
+export async function createWorkspace(name: string, cards: Card[]): Promise<Workspace> {
+  const workspace: Workspace = { id: crypto.randomUUID(), name: name.trim() || "Untitled", createdAt: Date.now(), cards };
+  await chrome.storage.local.set({ [workspaceKey(workspace.id)]: workspace });
+  return workspace;
+}
+
+export const renameWorkspace = (id: string, name: string) =>
+  updateRecord<Workspace>(workspaceKey(id), (w) => void (w.name = name.trim() || w.name));
+
+export const setWorkspaceCards = (id: string, cards: Card[]) =>
+  updateRecord<Workspace>(workspaceKey(id), (w) => void (w.cards = cards));
+
+export const deleteWorkspace = (id: string) => chrome.storage.local.remove(workspaceKey(id));

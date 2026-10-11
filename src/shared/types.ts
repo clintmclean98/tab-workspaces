@@ -12,3 +12,11 @@ export interface Collection {
   createdAt: number;
   cards: Card[];
 }
+
+/** A named set of tabs. While bound to a window, `cards` mirrors that window's tabs. */
+export interface Workspace {
+  id: string;
+  name: string;
+  createdAt: number;
+  cards: Card[];
+}

@@ -1,15 +1,24 @@
-// Contract between extension pages and the service worker.
-export interface SaveWindowRequest {
-  type: "save-window";
-  windowId: number;
-  closeAfter: boolean;
+// Contract between extension pages and the service worker. Add a request by
+// adding one entry to each map; the sender and the handler table are then
+// type-checked against it.
+export interface Requests {
+  "save-window": { windowId: number; closeAfter: boolean };
+  "create-workspace": { windowId: number; name: string; fromWindow: boolean };
+  "switch-workspace": { windowId: number; workspaceId: string };
 }
 
-export type SaveWindowResponse =
-  | { ok: true; collectionId: string | null } // null: the window had nothing savable
-  | { ok: false; error: string };
+export interface Responses {
+  /** collectionId is null when the window had nothing savable. */
+  "save-window": { collectionId: string | null };
+  "create-workspace": { workspaceId: string };
+  "switch-workspace": Record<string, never>;
+}
 
-export function requestSaveWindow(windowId: number, closeAfter: boolean): Promise<SaveWindowResponse> {
-  const request: SaveWindowRequest = { type: "save-window", windowId, closeAfter };
-  return chrome.runtime.sendMessage(request);
+export type MessageType = keyof Requests;
+export type Message = { [K in MessageType]: { type: K } & Requests[K] }[MessageType];
+export type Result<K extends MessageType> = ({ ok: true } & Responses[K]) | { ok: false; error: string };
+export type Handlers = { [K in MessageType]: (request: Requests[K]) => Promise<Responses[K]> };
+
+export function send<K extends MessageType>(type: K, payload: Requests[K]): Promise<Result<K>> {
+  return chrome.runtime.sendMessage({ type, ...payload });
 }

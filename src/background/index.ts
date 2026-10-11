@@ -1,43 +1,56 @@
-import type { SaveWindowRequest, SaveWindowResponse } from "../shared/messages";
+import type { Handlers, Message } from "../shared/messages";
 import { saveTabsAsCollection } from "../shared/store";
+import { MANAGER_URL, openManager, windowSession } from "./session";
+import { createWorkspaceFor, onWindowRemoved, scheduleSync, switchWorkspace } from "./workspaces";
 
-const MANAGER_URL = chrome.runtime.getURL("newtab.html");
-
-/** Focus the collections manager if it is open anywhere, otherwise open it. */
-async function openManager() {
-  const [existing] = await chrome.tabs.query({ url: MANAGER_URL });
-  if (existing?.id == null) {
-    await chrome.tabs.create({ url: MANAGER_URL });
-    return;
-  }
-  await chrome.tabs.update(existing.id, { active: true });
-  await chrome.windows.update(existing.windowId, { focused: true });
-}
-
-/**
- * Save a window's session, optionally closing it. A session is the window's
- * non-pinned tabs: pinned tabs are neither saved nor closed.
- */
+/** Save a window's session as a collection, optionally closing it. */
 async function saveWindow(windowId: number, closeAfter: boolean) {
-  const all = await chrome.tabs.query({ windowId });
-  const session = all.filter((t) => !t.pinned && t.url !== MANAGER_URL);
+  const { session, survivors } = await windowSession(windowId);
   const saved = await saveTabsAsCollection(session);
   if (!saved || !closeAfter) return saved;
 
   // Closing the last tab closes the window, so leave a manager tab behind.
-  if (session.length === all.length) await chrome.tabs.create({ windowId, url: MANAGER_URL });
+  if (survivors === 0) await chrome.tabs.create({ windowId, url: MANAGER_URL });
   await chrome.tabs.remove(session.map((t) => t.id!));
   return saved;
 }
 
-chrome.runtime.onMessage.addListener((request: SaveWindowRequest, _sender, respond: (r: SaveWindowResponse) => void) => {
-  if (request.type !== "save-window") return;
-  saveWindow(request.windowId, request.closeAfter).then(
-    (saved) => respond({ ok: true, collectionId: saved?.id ?? null }),
+const handlers: Handlers = {
+  "save-window": async ({ windowId, closeAfter }) => ({
+    collectionId: (await saveWindow(windowId, closeAfter))?.id ?? null,
+  }),
+  "create-workspace": async ({ windowId, name, fromWindow }) => ({
+    workspaceId: (await createWorkspaceFor(windowId, name, fromWindow)).id,
+  }),
+  "switch-workspace": async ({ windowId, workspaceId }) => {
+    await switchWorkspace(windowId, workspaceId);
+    return {};
+  },
+};
+
+chrome.runtime.onMessage.addListener((message: Message, _sender, respond) => {
+  const handle = handlers[message.type] as ((m: Message) => Promise<object>) | undefined;
+  if (!handle) return;
+  handle(message).then(
+    (result) => respond({ ok: true, ...result }),
     (e) => respond({ ok: false, error: String(e) }),
   );
   return true; // respond asynchronously
 });
+
+// Keep a window's workspace in step with its tabs.
+chrome.tabs.onCreated.addListener((t) => scheduleSync(t.windowId));
+chrome.tabs.onUpdated.addListener((_id, change, t) => {
+  if (change.url || change.title || change.pinned !== undefined || change.status === "complete") scheduleSync(t.windowId);
+});
+// A closing window removes its tabs one by one; syncing then would empty the workspace.
+chrome.tabs.onRemoved.addListener((_id, info) => {
+  if (!info.isWindowClosing) scheduleSync(info.windowId);
+});
+chrome.tabs.onMoved.addListener((_id, info) => scheduleSync(info.windowId));
+chrome.tabs.onAttached.addListener((_id, info) => scheduleSync(info.newWindowId));
+chrome.tabs.onDetached.addListener((_id, info) => scheduleSync(info.oldWindowId));
+chrome.windows.onRemoved.addListener((windowId) => void onWindowRemoved(windowId));
 
 chrome.commands.onCommand.addListener(async (command) => {
   if (command === "open-manager") await openManager();

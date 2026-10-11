@@ -13,7 +13,17 @@ extensions' public behavior and architecture informed the design.
 
 Early scaffold. Working today: save a window's tabs into a collection (popup button
 or `Alt+Shift+S`), on the new-tab page and side panel: search, rename collections, add notes to cards,
-remove cards, drag cards to reorder within a collection, and open a collection's tabs. Pinned tabs are never saved or closed. Workspaces, search and go-links are not built yet.
+remove cards, drag cards to reorder within a collection, and open a collection's tabs. Pinned tabs are never saved or closed.
+
+Workspaces (from the toolbar popup): create one from the current window or empty,
+and switch a window between them. A workspace bound to a window mirrors its tabs
+live. Switching never loses tabs: a bound window is synced first, and an unbound
+window's tabs are saved as an "Unsaved tabs" collection.
+
+Known limits: switching closes the old tabs and reopens the new ones (page state
+such as scroll position or form input is not kept). Window-to-workspace bindings
+are per browser session, so after a restart a window must be switched or
+re-created to bind again. Universal search and go-links are not built yet.
 
 ## Development
 
