@@ -11,6 +11,7 @@ export default defineConfig({
         popup: "popup.html",
         newtab: "newtab.html",
         sidepanel: "sidepanel.html",
+        search: "search.html",
         background: "src/background/index.ts",
       },
       output: {

@@ -1,6 +1,7 @@
 import type { Handlers, Message } from "../shared/messages";
 import { matchGoLinks, resolveGoLink } from "../shared/golinks";
 import { listGoLinks, saveTabsAsCollection } from "../shared/store";
+import { openSearch } from "./search";
 import { MANAGER_URL, openManager, windowSession } from "./session";
 import { createWorkspaceFor, onWindowRemoved, scheduleSync, switchWorkspace } from "./workspaces";
 
@@ -25,6 +26,10 @@ const handlers: Handlers = {
   }),
   "switch-workspace": async ({ windowId, workspaceId }) => {
     await switchWorkspace(windowId, workspaceId);
+    return {};
+  },
+  "open-search": async () => {
+    await openSearch();
     return {};
   },
 };
@@ -55,6 +60,7 @@ chrome.windows.onRemoved.addListener((windowId) => void onWindowRemoved(windowId
 
 chrome.commands.onCommand.addListener(async (command) => {
   if (command === "open-manager") await openManager();
+  if (command === "search") await openSearch();
   if (command === "save-session") {
     const win = await chrome.windows.getLastFocused();
     if (win.id != null) await saveWindow(win.id, false);

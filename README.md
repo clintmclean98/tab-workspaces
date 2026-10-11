@@ -49,7 +49,7 @@ Layout: `src/background` (service worker), `src/popup`, `src/collections` (share
 - One-click save of the current window's tabs to a collection, optionally closing them
 - Collections of cards (URL, title, favicon, note) with search and open-all
 - Workspaces bound to windows, with tab hide and suspend
-- Universal search across open tabs, saved cards and history
+- Universal search across open tabs, saved cards, workspaces, go-links and history
 - New-tab page, side panel and `to <name>` omnibox go-links
 - Keyboard shortcuts
 - Local-first storage; optional sync later

@@ -5,6 +5,7 @@ export interface Requests {
   "save-window": { windowId: number; closeAfter: boolean };
   "create-workspace": { windowId: number; name: string; fromWindow: boolean };
   "switch-workspace": { windowId: number; workspaceId: string };
+  "open-search": Record<string, never>;
 }
 
 export interface Responses {
@@ -12,6 +13,7 @@ export interface Responses {
   "save-window": { collectionId: string | null };
   "create-workspace": { workspaceId: string };
   "switch-workspace": Record<string, never>;
+  "open-search": Record<string, never>;
 }
 
 export type MessageType = keyof Requests;

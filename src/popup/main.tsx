@@ -35,6 +35,7 @@ function Popup() {
   return (
     <div style={box}>
       <h3 style={{ margin: "0 0 8px" }}>Tab Workspaces</h3>
+      <button onClick={() => void send("open-search", {}).then(() => window.close())}>Search…</button>
 
       <section>
         <strong>Workspaces</strong>
