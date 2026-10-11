@@ -1,13 +1,13 @@
 import { createRoot } from "react-dom/client";
-import { useAppState } from "../shared/useState";
+import { useCollections } from "../shared/useCollections";
 import { CollectionList } from "../shared/CollectionList";
 
 function App() {
-  const state = useAppState();
+  const collections = useCollections();
   return (
     <div style={{ fontFamily: "system-ui", padding: 16, maxWidth: 800, margin: "0 auto" }}>
       <h2>Collections (side panel)</h2>
-      {state ? <CollectionList collections={state.collections} /> : <p>Loading…</p>}
+      {collections ? <CollectionList collections={collections} /> : <p>Loading…</p>}
     </div>
   );
 }

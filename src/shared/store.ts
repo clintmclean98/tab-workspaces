@@ -1,60 +1,48 @@
-import type { Card, Collection, State } from "./types";
+import type { Card, Collection } from "./types";
 
-const KEY = "state";
-const empty = (): State => ({ version: 1, collections: [], workspaces: [] });
+// Each collection lives under its own key. A save writes one key and a delete
+// removes one key, so writers in different extension contexts (service worker,
+// popup, new tab) can never overwrite each other's changes.
+const PREFIX = "collection:";
+const keyOf = (id: string) => PREFIX + id;
 
-export const uid = () => crypto.randomUUID();
-
-export async function getState(): Promise<State> {
-  const data = await chrome.storage.local.get(KEY);
-  return (data[KEY] as State | undefined) ?? empty();
+export async function listCollections(): Promise<Collection[]> {
+  const all = await chrome.storage.local.get(null);
+  return Object.entries(all)
+    .filter(([key]) => key.startsWith(PREFIX))
+    .map(([, value]) => value as Collection)
+    .sort((a, b) => b.createdAt - a.createdAt);
 }
 
-export async function setState(state: State): Promise<void> {
-  await chrome.storage.local.set({ [KEY]: state });
+export function deleteCollection(id: string): Promise<void> {
+  return chrome.storage.local.remove(keyOf(id));
 }
 
-/** Serialise read-modify-write so concurrent callers don't lose updates. */
-let queue: Promise<unknown> = Promise.resolve();
-export function update(fn: (s: State) => void): Promise<State> {
-  const run = queue.then(async () => {
-    const s = await getState();
-    fn(s);
-    await setState(s);
-    return s;
-  });
-  queue = run.catch(() => undefined);
-  return run;
-}
-
-export function onStateChange(cb: (s: State) => void): () => void {
+export function onCollectionsChange(cb: () => void): () => void {
   const listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
-    if (area === "local" && changes[KEY]) cb(changes[KEY].newValue as State);
+    if (area === "local" && Object.keys(changes).some((k) => k.startsWith(PREFIX))) cb();
   };
   chrome.storage.onChanged.addListener(listener);
   return () => chrome.storage.onChanged.removeListener(listener);
 }
 
-const isSavable = (url?: string) => !!url && /^https?:\/\//.test(url);
+export function openCollection(collection: Collection): Promise<chrome.tabs.Tab[]> {
+  return Promise.all(collection.cards.map((c) => chrome.tabs.create({ url: c.url, active: false })));
+}
 
-export function tabToCard(tab: chrome.tabs.Tab): Card | null {
-  if (!isSavable(tab.url)) return null;
-  return { id: uid(), url: tab.url!, title: tab.title || tab.url!, favIconUrl: tab.favIconUrl };
+function tabToCard(tab: chrome.tabs.Tab): Card | null {
+  if (!tab.url || !/^https?:\/\//.test(tab.url)) return null;
+  return { id: crypto.randomUUID(), url: tab.url, title: tab.title || tab.url, favIconUrl: tab.favIconUrl };
 }
 
 /** Save the given tabs as a new collection. Returns it, or null if nothing was savable. */
 export async function saveTabsAsCollection(
   tabs: chrome.tabs.Tab[],
-  title?: string,
+  title = `Session ${new Date().toLocaleString()}`,
 ): Promise<Collection | null> {
   const cards = tabs.map(tabToCard).filter((c): c is Card => c !== null);
   if (cards.length === 0) return null;
-  const collection: Collection = {
-    id: uid(),
-    title: title ?? `Session ${new Date().toLocaleString()}`,
-    createdAt: Date.now(),
-    cards,
-  };
-  await update((s) => void s.collections.unshift(collection));
+  const collection: Collection = { id: crypto.randomUUID(), title, createdAt: Date.now(), cards };
+  await chrome.storage.local.set({ [keyOf(collection.id)]: collection });
   return collection;
 }

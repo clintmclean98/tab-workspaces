@@ -1,9 +1,9 @@
 import { createRoot } from "react-dom/client";
 import { useState } from "react";
-import { useAppState } from "../shared/useState";
+import { useCollections } from "../shared/useCollections";
 
 function Popup() {
-  const state = useAppState();
+  const collections = useCollections();
   const [status, setStatus] = useState("");
 
   const save = async (closeAfter: boolean) => {
@@ -18,7 +18,7 @@ function Popup() {
       <button onClick={() => save(false)}>Save window</button>{" "}
       <button onClick={() => save(true)}>Save &amp; close</button>
       <p>{status}</p>
-      <small>{state?.collections.length ?? 0} collections</small>
+      <small>{collections?.length ?? 0} collections</small>
     </div>
   );
 }
