@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { useState } from "react";
+import { requestSaveWindow } from "../shared/messages";
 import { useCollections } from "../shared/useCollections";
 
 function Popup() {
@@ -8,8 +9,8 @@ function Popup() {
 
   const save = async (closeAfter: boolean) => {
     const win = await chrome.windows.getCurrent();
-    const res = await chrome.runtime.sendMessage({ type: "save-window", windowId: win.id, closeAfter });
-    setStatus(res?.ok && res.collectionId ? "Saved." : "Nothing to save.");
+    const res = await requestSaveWindow(win.id!, closeAfter);
+    setStatus(!res.ok ? `Failed: ${res.error}` : res.collectionId ? "Saved." : "Nothing to save.");
   };
 
   return (

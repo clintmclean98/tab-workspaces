@@ -1,40 +1,42 @@
+import type { SaveWindowRequest, SaveWindowResponse } from "../shared/messages";
 import { saveTabsAsCollection } from "../shared/store";
 
-const MANAGER = "newtab.html";
+const MANAGER_URL = chrome.runtime.getURL("newtab.html");
 
-async function openManager(windowId?: number) {
-  const url = chrome.runtime.getURL(MANAGER);
-  const [existing] = await chrome.tabs.query({ url });
-  if (existing?.id != null) {
-    await chrome.tabs.update(existing.id, { active: true });
-    await chrome.windows.update(existing.windowId, { focused: true });
+/** Focus the collections manager if it is open anywhere, otherwise open it. */
+async function openManager() {
+  const [existing] = await chrome.tabs.query({ url: MANAGER_URL });
+  if (existing?.id == null) {
+    await chrome.tabs.create({ url: MANAGER_URL });
     return;
   }
-  await chrome.tabs.create({ url, windowId });
+  await chrome.tabs.update(existing.id, { active: true });
+  await chrome.windows.update(existing.windowId, { focused: true });
 }
 
-/** Save every savable tab in the window, then close them (keeping the window alive). */
+/**
+ * Save a window's session, optionally closing it. A session is the window's
+ * non-pinned tabs: pinned tabs are neither saved nor closed.
+ */
 async function saveWindow(windowId: number, closeAfter: boolean) {
-  const tabs = await chrome.tabs.query({ windowId });
-  const saved = await saveTabsAsCollection(tabs);
+  const all = await chrome.tabs.query({ windowId });
+  const session = all.filter((t) => !t.pinned && t.url !== MANAGER_URL);
+  const saved = await saveTabsAsCollection(session);
   if (!saved || !closeAfter) return saved;
-  const managerUrl = chrome.runtime.getURL(MANAGER);
-  const ids = tabs
-    .filter((t) => t.id != null && !t.pinned && !t.url?.startsWith(managerUrl))
-    .map((t) => t.id!);
-  await openManager(windowId); // ensure the window isn't left empty
-  await chrome.tabs.remove(ids);
+
+  // Closing the last tab closes the window, so leave a manager tab behind.
+  if (session.length === all.length) await chrome.tabs.create({ windowId, url: MANAGER_URL });
+  await chrome.tabs.remove(session.map((t) => t.id!));
   return saved;
 }
 
-chrome.runtime.onMessage.addListener((msg, _sender, respond) => {
-  if (msg?.type === "save-window" && typeof msg.windowId === "number") {
-    saveWindow(msg.windowId, !!msg.closeAfter).then(
-      (c) => respond({ ok: true, collectionId: c?.id ?? null }),
-      (e) => respond({ ok: false, error: String(e) }),
-    );
-    return true; // async response
-  }
+chrome.runtime.onMessage.addListener((request: SaveWindowRequest, _sender, respond: (r: SaveWindowResponse) => void) => {
+  if (request.type !== "save-window") return;
+  saveWindow(request.windowId, request.closeAfter).then(
+    (saved) => respond({ ok: true, collectionId: saved?.id ?? null }),
+    (e) => respond({ ok: false, error: String(e) }),
+  );
+  return true; // respond asynchronously
 });
 
 chrome.commands.onCommand.addListener(async (command) => {
@@ -45,19 +47,8 @@ chrome.commands.onCommand.addListener(async (command) => {
   }
 });
 
-chrome.omnibox.onInputEntered.addListener(async (text) => {
-  // Placeholder go-links: "to <term>" opens the manager; resolution comes later.
-  await openManager();
-  console.debug("omnibox go-link", text);
-});
-
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: "open-manager",
-    title: "Open collections",
-    contexts: ["action"],
-  });
-  chrome.sidePanel?.setPanelBehavior?.({ openPanelOnActionClick: false }).catch(() => {});
+  chrome.contextMenus.create({ id: "open-manager", title: "Open collections", contexts: ["action"] });
 });
 
 chrome.contextMenus.onClicked.addListener((info) => {
