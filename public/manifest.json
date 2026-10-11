@@ -9,7 +9,6 @@
   "background": { "service_worker": "background.js", "type": "module" },
   "chrome_url_overrides": { "newtab": "newtab.html" },
   "side_panel": { "default_path": "sidepanel.html" },
-  "omnibox": { "keyword": "to" },
   "permissions": ["tabs", "storage", "unlimitedStorage", "contextMenus", "sidePanel"],
   "optional_permissions": ["tabGroups", "history"],
   "commands": {

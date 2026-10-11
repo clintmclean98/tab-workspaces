@@ -13,7 +13,7 @@ extensions' public behavior and architecture informed the design.
 
 Early scaffold. Working today: save a window's tabs into a collection (popup button
 or `Alt+Shift+S`), view and delete collections on the new-tab page and side panel,
-and open a collection's tabs. Workspaces, search and go-links are not built yet.
+and open a collection's tabs. Pinned tabs are never saved or closed. Workspaces, search and go-links are not built yet.
 
 ## Development
 
@@ -26,8 +26,7 @@ npm run dev          # rebuild on change
 Then open `chrome://extensions`, enable Developer mode, choose **Load unpacked**
 and select the `dist/` folder.
 
-Layout: `src/background` (service worker), `src/popup`, `src/newtab`,
-`src/sidepanel` (views), `src/shared` (types and the `chrome.storage.local` store),
+Layout: `src/background` (service worker), `src/popup`, `src/collections` (shared new-tab/side-panel view), `src/shared` (types, messages, and the `chrome.storage.local` store, one key per collection),
 `public/manifest.json`.
 
 ## Planned features
