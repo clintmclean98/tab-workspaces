@@ -23,11 +23,19 @@ window's tabs are saved as an "Unsaved tabs" collection.
 Known limits: switching closes the old tabs and reopens the new ones (page state
 such as scroll position or form input is not kept). Window-to-workspace bindings
 are per browser session, so after a restart a window must be switched or
-re-created to bind again. 
+re-created to bind again.
+
 Go-links: add a short name and URL on the manager page, then type `to <name>` in
 the address bar (Chrome offers matching names as you type). An unknown name opens
-the manager so it can be added. Universal search across tabs, cards and history is
-not built yet.
+the manager so it can be added.
+
+Universal search (`Alt+Shift+F`, or **Search…** in the popup): one box over open
+tabs, saved cards (collections and workspaces), workspaces, go-links and, if you
+opt in, browsing history. Every word you type must match; prefix and word-start
+matches rank higher, and open tabs win ties. A page that is open, saved and in
+history shows once. Up/Down and Enter choose a result: a tab is focused, a saved
+page or history entry opens in the window you searched from, and a workspace
+switches that window. History is optional and asks for permission on first use.
 
 ## Development
 
