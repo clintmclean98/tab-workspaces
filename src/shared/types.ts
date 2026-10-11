@@ -20,3 +20,9 @@ export interface Workspace {
   createdAt: number;
   cards: Card[];
 }
+
+/** A short name that opens a URL: typing `to <name>` in the address bar. */
+export interface GoLink {
+  name: string;
+  url: string;
+}

@@ -1,6 +1,6 @@
 import { moveItem } from "./array";
 import { tabToCard } from "./cards";
-import type { Card, Collection, Workspace } from "./types";
+import type { Card, Collection, GoLink, Workspace } from "./types";
 
 // Every record lives under its own key ("collection:<id>", "workspace:<id>"). A
 // save writes one key and a delete removes one key, so writers in different
@@ -108,3 +108,18 @@ export const setWorkspaceCards = (id: string, cards: Card[]) =>
   updateRecord<Workspace>(workspaceKey(id), (w) => void (w.cards = cards));
 
 export const deleteWorkspace = (id: string) => chrome.storage.local.remove(workspaceKey(id));
+
+// ---- go-links ----
+
+const GOLINK = "golink:";
+
+export async function listGoLinks(): Promise<GoLink[]> {
+  return (await listByPrefix<GoLink>(GOLINK)).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export const onGoLinksChange = (cb: () => void) => onPrefixChange(GOLINK, cb);
+
+/** Create a go-link, or overwrite the one with the same name. */
+export const saveGoLink = (link: GoLink) => chrome.storage.local.set({ [GOLINK + link.name]: link });
+
+export const deleteGoLink = (name: string) => chrome.storage.local.remove(GOLINK + name);

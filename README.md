@@ -23,7 +23,11 @@ window's tabs are saved as an "Unsaved tabs" collection.
 Known limits: switching closes the old tabs and reopens the new ones (page state
 such as scroll position or form input is not kept). Window-to-workspace bindings
 are per browser session, so after a restart a window must be switched or
-re-created to bind again. Universal search and go-links are not built yet.
+re-created to bind again. 
+Go-links: add a short name and URL on the manager page, then type `to <name>` in
+the address bar (Chrome offers matching names as you type). An unknown name opens
+the manager so it can be added. Universal search across tabs, cards and history is
+not built yet.
 
 ## Development
 
@@ -46,7 +50,7 @@ Layout: `src/background` (service worker), `src/popup`, `src/collections` (share
 - Collections of cards (URL, title, favicon, note) with search and open-all
 - Workspaces bound to windows, with tab hide and suspend
 - Universal search across open tabs, saved cards and history
-- New-tab page, side panel and `to/` omnibox go-links
+- New-tab page, side panel and `to <name>` omnibox go-links
 - Keyboard shortcuts
 - Local-first storage; optional sync later
 

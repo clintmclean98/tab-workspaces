@@ -1,5 +1,6 @@
 import type { Handlers, Message } from "../shared/messages";
-import { saveTabsAsCollection } from "../shared/store";
+import { matchGoLinks, resolveGoLink } from "../shared/golinks";
+import { listGoLinks, saveTabsAsCollection } from "../shared/store";
 import { MANAGER_URL, openManager, windowSession } from "./session";
 import { createWorkspaceFor, onWindowRemoved, scheduleSync, switchWorkspace } from "./workspaces";
 
@@ -59,6 +60,21 @@ chrome.commands.onCommand.addListener(async (command) => {
     if (win.id != null) await saveWindow(win.id, false);
   }
 });
+
+// Go-links: type `to <name>` in the address bar.
+chrome.omnibox.onInputChanged.addListener(async (text, suggest) => {
+  const matches = matchGoLinks(await listGoLinks(), text);
+  suggest(matches.map((l) => ({ content: l.name, description: `${escapeXml(l.name)} - <url>${escapeXml(l.url)}</url>` })));
+});
+
+chrome.omnibox.onInputEntered.addListener(async (text, disposition) => {
+  const link = resolveGoLink(await listGoLinks(), text);
+  if (!link) return void (await openManager()); // unknown name: show the list so it can be added
+  if (disposition === "currentTab") await chrome.tabs.update({ url: link.url });
+  else await chrome.tabs.create({ url: link.url, active: disposition === "newForegroundTab" });
+});
+
+const escapeXml = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({ id: "open-manager", title: "Open collections", contexts: ["action"] });

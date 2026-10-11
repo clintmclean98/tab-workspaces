@@ -1,14 +1,16 @@
 import { createRoot } from "react-dom/client";
 import { useMemo, useState } from "react";
 import { filterCollections } from "../shared/search";
-import { useBindings, useCollections, useWorkspaces } from "../shared/useLive";
+import { useBindings, useCollections, useGoLinks, useWorkspaces } from "../shared/useLive";
 import { CollectionList } from "./CollectionList";
+import { GoLinkList } from "./GoLinkList";
 import { WorkspaceList } from "./WorkspaceList";
 
 function App() {
   const collections = useCollections();
   const workspaces = useWorkspaces();
   const bindings = useBindings();
+  const goLinks = useGoLinks();
   const [query, setQuery] = useState("");
   const visible = useMemo(() => filterCollections(collections ?? [], query), [collections, query]);
   const active = useMemo(() => new Set(bindings?.values()), [bindings]);
@@ -17,6 +19,9 @@ function App() {
     <div style={{ fontFamily: "system-ui", padding: 16, maxWidth: 800, margin: "0 auto" }}>
       <h2>Workspaces</h2>
       {workspaces ? <WorkspaceList workspaces={workspaces} active={active} /> : <p>Loading…</p>}
+
+      <h2>Go-links</h2>
+      {goLinks ? <GoLinkList links={goLinks} /> : <p>Loading…</p>}
 
       <h2>Collections</h2>
       <input

@@ -8,6 +8,7 @@
   "action": { "default_title": "Tab Workspaces", "default_popup": "popup.html" },
   "background": { "service_worker": "background.js", "type": "module" },
   "chrome_url_overrides": { "newtab": "newtab.html" },
+  "omnibox": { "keyword": "to" },
   "side_panel": { "default_path": "sidepanel.html" },
   "permissions": ["tabs", "storage", "unlimitedStorage", "contextMenus", "sidePanel"],
   "optional_permissions": ["tabGroups", "history"],
