@@ -1,8 +1,15 @@
 import type { Card } from "./types";
 
+/** The tab's web address if it is a page worth saving (http or https). A tab still loading has only a pending URL. */
+export function savableUrl(tab: chrome.tabs.Tab): string | undefined {
+  const url = tab.url || tab.pendingUrl;
+  return url && /^https?:\/\//.test(url) ? url : undefined;
+}
+
 export function tabToCard(tab: chrome.tabs.Tab): Card | null {
-  if (!tab.url || !/^https?:\/\//.test(tab.url)) return null;
-  return { id: crypto.randomUUID(), url: tab.url, title: tab.title || tab.url, favIconUrl: tab.favIconUrl };
+  const url = savableUrl(tab);
+  if (!url) return null;
+  return { id: crypto.randomUUID(), url, title: tab.title || url, favIconUrl: tab.favIconUrl };
 }
 
 /**

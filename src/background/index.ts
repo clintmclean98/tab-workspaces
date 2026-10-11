@@ -1,6 +1,7 @@
 import type { Handlers, Message } from "../shared/messages";
 import { matchGoLinks, resolveGoLink } from "../shared/golinks";
 import { listGoLinks, saveTabsAsCollection } from "../shared/store";
+import { beginRestoreWatch, rebindWindows, scheduleRebind } from "./restore";
 import { openSearch } from "./search";
 import { MANAGER_URL, openManager, windowSession } from "./session";
 import { createWorkspaceFor, onWindowRemoved, scheduleSync, switchWorkspace } from "./workspaces";
@@ -58,6 +59,10 @@ chrome.tabs.onAttached.addListener((_id, info) => scheduleSync(info.newWindowId)
 chrome.tabs.onDetached.addListener((_id, info) => scheduleSync(info.oldWindowId));
 chrome.windows.onRemoved.addListener((windowId) => void onWindowRemoved(windowId));
 
+// Recover which workspace each window was showing after a browser restart.
+chrome.runtime.onStartup.addListener(() => void beginRestoreWatch());
+chrome.windows.onCreated.addListener(() => scheduleRebind());
+
 chrome.commands.onCommand.addListener(async (command) => {
   if (command === "open-manager") await openManager();
   if (command === "search") await openSearch();
@@ -82,8 +87,10 @@ chrome.omnibox.onInputEntered.addListener(async (text, disposition) => {
 
 const escapeXml = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener(({ reason }) => {
   chrome.contextMenus.create({ id: "open-manager", title: "Open collections", contexts: ["action"] });
+  // An extension update or reload clears window bindings (storage.session) while windows stay open.
+  if (reason === "update") void rebindWindows().catch(console.error);
 });
 
 chrome.contextMenus.onClicked.addListener((info) => {

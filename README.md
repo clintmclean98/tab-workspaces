@@ -20,10 +20,15 @@ and switch a window between them. A workspace bound to a window mirrors its tabs
 live. Switching never loses tabs: a bound window is synced first, and an unbound
 window's tabs are saved as an "Unsaved tabs" collection.
 
+After a browser restart or an extension update, each window is matched back to
+the workspace it was showing, by comparing its tabs with the workspaces' saved
+tabs (most of the URLs must match, and each workspace is claimed by one window).
+This only happens in the first 30 seconds after startup and right after an
+update. A window you open later is never attached to a workspace automatically.
+
 Known limits: switching closes the old tabs and reopens the new ones (page state
-such as scroll position or form input is not kept). Window-to-workspace bindings
-are per browser session, so after a restart a window must be switched or
-re-created to bind again.
+such as scroll position or form input is not kept). A restored window whose tabs
+differ a lot from its workspace's stays unbound until you switch it.
 
 Go-links: add a short name and URL on the manager page, then type `to <name>` in
 the address bar (Chrome offers matching names as you type). An unknown name opens
