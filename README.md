@@ -12,8 +12,8 @@ extensions' public behavior and architecture informed the design.
 ## Status
 
 Early scaffold. Working today: save a window's tabs into a collection (popup button
-or `Alt+Shift+S`), view and delete collections on the new-tab page and side panel,
-and open a collection's tabs. Pinned tabs are never saved or closed. Workspaces, search and go-links are not built yet.
+or `Alt+Shift+S`), on the new-tab page and side panel: search, rename collections, add notes to cards,
+remove cards, drag cards to reorder within a collection, and open a collection's tabs. Pinned tabs are never saved or closed. Workspaces, search and go-links are not built yet.
 
 ## Development
 
@@ -21,6 +21,7 @@ and open a collection's tabs. Pinned tabs are never saved or closed. Workspaces,
 npm install
 npm run build        # outputs the unpacked extension to dist/
 npm run dev          # rebuild on change
+npm test             # unit tests (vitest)
 ```
 
 Then open `chrome://extensions`, enable Developer mode, choose **Load unpacked**
