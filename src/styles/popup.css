@@ -1,0 +1,35 @@
+.popup { width: 340px; padding: 14px; }
+.popup-title { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+
+.search-launch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 9px 11px;
+  font: 400 14px/1.2 var(--font);
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.search-launch:hover { border-color: var(--accent); }
+.search-launch kbd { font: 500 11px/1 var(--font); color: var(--muted); }
+
+.popup-section { margin-top: 16px; }
+.popup-heading { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+
+.ws-row { display: flex; align-items: center; gap: 8px; padding: 5px 6px; margin: 0 -6px; border-radius: 8px; }
+.ws-row:hover { background: var(--hover); }
+.ws-mark { width: 7px; height: 7px; flex: none; border-radius: 50%; background: transparent; }
+.ws-mark-here { background: var(--amber); }
+.ws-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-count { color: var(--muted); font-size: 12px; }
+
+.ws-create { display: grid; gap: 6px; margin-top: 8px; }
+.ws-create-actions { display: flex; gap: 6px; }
+
+.popup-actions { display: flex; gap: 6px; }
+.popup-status { min-height: 18px; margin: 12px 0 0; font-size: 13px; color: var(--accent); }
+.popup-status-error { color: var(--danger); }

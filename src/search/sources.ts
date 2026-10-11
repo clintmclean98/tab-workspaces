@@ -14,13 +14,13 @@ export async function loadLocalItems(): Promise<SearchItem[]> {
     ...tabs
       .filter((t) => t.id != null && t.url && !t.url.startsWith(ownPages))
       .map((t): SearchItem => ({ kind: "tab", key: `tab:${t.id}`, title: t.title || t.url!, url: t.url!, tabId: t.id!, windowId: t.windowId })),
-    ...workspaces.map((w): SearchItem => ({ kind: "workspace", key: `ws:${w.id}`, title: w.name, workspaceId: w.id, subtitle: `Workspace · ${w.cards.length} tabs` })),
+    ...workspaces.map((w): SearchItem => ({ kind: "workspace", key: `ws:${w.id}`, title: w.name, workspaceId: w.id, subtitle: `Workspace, ${w.cards.length} ${w.cards.length === 1 ? "tab" : "tabs"}` })),
     ...goLinks.map((l): SearchItem => ({ kind: "golink", key: `go:${l.name}`, title: `to ${l.name}`, url: l.url, subtitle: "Go-link" })),
     ...collections.flatMap((c) =>
-      c.cards.map((k): SearchItem => ({ kind: "card", key: `card:${c.id}:${k.id}`, title: k.title, url: k.url, subtitle: `Collection: ${c.title}${k.note ? ` · ${k.note}` : ""}` })),
+      c.cards.map((k): SearchItem => ({ kind: "card", key: `card:${c.id}:${k.id}`, title: k.title, url: k.url, subtitle: `In collection ${c.title}`, note: k.note })),
     ),
     ...workspaces.flatMap((w) =>
-      w.cards.map((k): SearchItem => ({ kind: "card", key: `card:${w.id}:${k.id}`, title: k.title, url: k.url, subtitle: `Workspace: ${w.name}${k.note ? ` · ${k.note}` : ""}` })),
+      w.cards.map((k): SearchItem => ({ kind: "card", key: `card:${w.id}:${k.id}`, title: k.title, url: k.url, subtitle: `In workspace ${w.name}`, note: k.note })),
     ),
   ];
 }

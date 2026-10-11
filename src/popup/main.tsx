@@ -1,70 +1,88 @@
 import { createRoot } from "react-dom/client";
 import { useEffect, useState } from "react";
 import { send } from "../shared/messages";
-import { useBindings, useCollections, useWorkspaces } from "../shared/useLive";
+import { useBindings, useWorkspaces } from "../shared/useLive";
+import "../styles/theme.css";
+import "../styles/popup.css";
 
-const box: React.CSSProperties = { width: 300, fontFamily: "system-ui", padding: 12 };
+type Outcome = { ok: boolean; error?: string };
 
 function Popup() {
-  const collections = useCollections();
   const workspaces = useWorkspaces();
   const bindings = useBindings();
-  const [windowId, setWindowId] = useState<number | null>(null);
+  const [windowId, setWindowId] = useState<number>();
   const [name, setName] = useState("");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState<{ text: string; error: boolean }>({ text: "", error: false });
 
-  useEffect(() => void chrome.windows.getCurrent().then((w) => setWindowId(w.id ?? null)), []);
-  const activeId = windowId === null ? undefined : bindings?.get(windowId);
+  useEffect(() => void chrome.windows.getCurrent().then((w) => setWindowId(w.id)), []);
+  const activeId = windowId === undefined ? undefined : bindings?.get(windowId);
 
-  const run = async (work: () => Promise<{ ok: boolean; error?: string }>, done: string) => {
+  const run = async (work: () => Promise<Outcome>, done: string) => {
     const res = await work();
-    setStatus(res.ok ? done : `Failed: ${res.error}`);
+    setStatus(res.ok ? { text: done, error: false } : { text: res.error ?? "Something went wrong.", error: true });
+    return res.ok;
   };
 
-  const save = (closeAfter: boolean) =>
-    windowId !== null &&
+  const saveWindow = (closeAfter: boolean) =>
+    windowId !== undefined &&
     run(async () => {
       const res = await send("save-window", { windowId, closeAfter });
-      return res.ok && !res.collectionId ? { ok: false, error: "nothing to save" } : res;
-    }, "Saved.");
+      return res.ok && !res.collectionId ? { ok: false, error: "This window has no tabs to save." } : res;
+    }, "Saved to your collections.");
 
-  const create = (fromWindow: boolean) =>
-    windowId !== null &&
-    run(() => send("create-workspace", { windowId, name, fromWindow }), "Workspace created.").then(() => setName(""));
+  const createWorkspace = async (fromWindow: boolean) => {
+    if (windowId === undefined) return;
+    if (await run(() => send("create-workspace", { windowId, name, fromWindow }), "Workspace created.")) setName("");
+  };
 
   return (
-    <div style={box}>
-      <h3 style={{ margin: "0 0 8px" }}>Tab Workspaces</h3>
-      <button onClick={() => void send("open-search", {}).then(() => window.close())}>Search…</button>
+    <div className="popup">
+      <h1 className="popup-title">Tab Workspaces</h1>
 
-      <section>
-        <strong>Workspaces</strong>
-        <ul style={{ listStyle: "none", padding: 0, margin: "6px 0" }}>
+      <button className="search-launch" onClick={() => void send("open-search", {}).then(() => window.close())}>
+        <span>Search tabs and saved pages</span>
+        <kbd>Alt+Shift+F</kbd>
+      </button>
+
+      <section className="popup-section">
+        <h2 className="popup-heading">Workspaces</h2>
+        <ul>
           {(workspaces ?? []).map((w) => (
-            <li key={w.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-              <span>
-                {w.id === activeId ? "● " : ""}
-                {w.name} <small>({w.cards.length})</small>
-              </span>
-              {w.id !== activeId && (
-                <button onClick={() => windowId !== null && run(() => send("switch-workspace", { windowId, workspaceId: w.id }), "Switched.")}>
+            <li key={w.id} className="ws-row">
+              <span className={`ws-mark${w.id === activeId ? " ws-mark-here" : ""}`} aria-hidden />
+              <span className="ws-name">{w.name}</span>
+              <span className="ws-count">{w.cards.length}</span>
+              {w.id === activeId ? (
+                <span className="muted" style={{ fontSize: 12 }}>This window</span>
+              ) : (
+                <button
+                  className="btn"
+                  onClick={() => windowId !== undefined && run(() => send("switch-workspace", { windowId, workspaceId: w.id }), "Switched workspace.")}
+                >
                   Switch
                 </button>
               )}
             </li>
           ))}
         </ul>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="New workspace name" style={{ width: "100%", boxSizing: "border-box" }} />
-        <button onClick={() => create(true)}>From this window</button> <button onClick={() => create(false)}>Empty</button>
-      </section>
-
-      <section style={{ marginTop: 12 }}>
-        <strong>Collections</strong> <small>({collections?.length ?? 0})</small>
-        <div>
-          <button onClick={() => save(false)}>Save window</button> <button onClick={() => save(true)}>Save &amp; close</button>
+        <div className="ws-create">
+          <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="New workspace name" aria-label="New workspace name" />
+          <div className="ws-create-actions">
+            <button className="btn btn-primary" onClick={() => createWorkspace(true)}>From this window</button>
+            <button className="btn" onClick={() => createWorkspace(false)}>Empty</button>
+          </div>
         </div>
       </section>
-      <p>{status}</p>
+
+      <section className="popup-section">
+        <h2 className="popup-heading">Collections</h2>
+        <div className="popup-actions">
+          <button className="btn" onClick={() => saveWindow(false)}>Save window</button>
+          <button className="btn" onClick={() => saveWindow(true)}>Save and close</button>
+        </div>
+      </section>
+
+      <p className={`popup-status${status.error ? " popup-status-error" : ""}`} role="status">{status.text}</p>
     </div>
   );
 }

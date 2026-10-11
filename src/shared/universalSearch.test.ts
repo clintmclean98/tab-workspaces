@@ -23,7 +23,10 @@ describe("scoreItem", () => {
     expect(midWord).toBeGreaterThan(urlOnly);
   });
   it("matches against the subtitle (e.g. the collection name)", () => {
-    expect(scoreItem(card("Pasta", "https://a.com", "Collection: Recipes"), "recipes")).not.toBeNull();
+    expect(scoreItem(card("Pasta", "https://a.com", "In collection Recipes"), "recipes")).not.toBeNull();
+  });
+  it("matches against the user's note", () => {
+    expect(scoreItem({ ...card("Pasta", "https://a.com"), note: "good for winter" }, "winter")).not.toBeNull();
   });
 });
 

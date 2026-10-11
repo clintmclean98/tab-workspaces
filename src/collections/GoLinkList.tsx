@@ -19,25 +19,27 @@ export function GoLinkList({ links }: { links: GoLink[] }) {
 
   return (
     <div>
-      <p style={{ fontSize: 13 }}>
-        Type <code>to</code>, press Space or Tab, then a name in the address bar.
+      <p className="muted">
+        In the address bar, type <strong>to</strong>, press Space or Tab, then the name.
       </p>
       <form
+        className="golink-form"
         onSubmit={(e) => {
           e.preventDefault();
           void add();
         }}
       >
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="name (e.g. jira)" />{" "}
-        <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" style={{ width: 280 }} />{" "}
-        <button type="submit">Add</button>
-        {error && <div style={{ color: "#b91c1c", fontSize: 13 }}>{error}</div>}
+        <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name, such as jira" aria-label="Go-link name" />
+        <input className="input" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" aria-label="Go-link URL" />
+        <button className="btn btn-primary" type="submit">Add go-link</button>
+        {error && <div className="form-error" role="alert">{error}</div>}
       </form>
-      <ul style={{ listStyle: "none", padding: 0 }}>
+      <ul>
         {links.map((l) => (
-          <li key={l.name} style={{ marginTop: 6 }}>
-            <strong>{l.name}</strong> → <a href={l.url} target="_blank" rel="noreferrer">{l.url}</a>{" "}
-            <button onClick={() => deleteGoLink(l.name)}>Delete</button>
+          <li key={l.name} className="golink">
+            <span className="golink-name">{l.name}</span>
+            <a className="golink-url" href={l.url} target="_blank" rel="noreferrer">{l.url}</a>
+            <button className="btn btn-quiet btn-danger" onClick={() => deleteGoLink(l.name)}>Delete</button>
           </li>
         ))}
       </ul>

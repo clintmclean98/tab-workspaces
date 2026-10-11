@@ -4,6 +4,8 @@ export interface BaseItem {
   title: string;
   url?: string;
   subtitle?: string;
+  /** The user's own note on a saved page; searchable like the subtitle. */
+  note?: string;
 }
 
 export type SearchItem = BaseItem &
@@ -32,7 +34,7 @@ function scoreToken(item: BaseItem, token: string): number | null {
     for (let i = at; i >= 0; i = title.indexOf(token, i + 1)) if (isWordStart(title, i)) return 80;
     return 50;
   }
-  if (item.url?.toLowerCase().includes(token) || item.subtitle?.toLowerCase().includes(token)) return 20;
+  if ([item.url, item.subtitle, item.note].some((field) => field?.toLowerCase().includes(token))) return 20;
   return null;
 }
 

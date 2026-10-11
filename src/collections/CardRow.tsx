@@ -2,6 +2,7 @@ import { useState } from "react";
 import { deleteCard, moveCard, setCardNote } from "../shared/store";
 import type { Card } from "../shared/types";
 import { EditableText } from "./EditableText";
+import { PageSummary } from "./PageRow";
 
 interface Props {
   collectionId: string;
@@ -17,6 +18,7 @@ export function CardRow({ collectionId, card, reorderable }: Props) {
 
   return (
     <li
+      className={`row${dragOver ? " row-over" : ""}`}
       draggable={reorderable}
       onDragStart={(e) => e.dataTransfer.setData(DRAG_TYPE, JSON.stringify({ collectionId, cardId: card.id }))}
       onDragOver={(e) => {
@@ -33,14 +35,14 @@ export function CardRow({ collectionId, card, reorderable }: Props) {
         const from = JSON.parse(raw) as { collectionId: string; cardId: string };
         if (from.collectionId === collectionId) void moveCard(collectionId, from.cardId, card.id);
       }}
-      style={{ marginBottom: 4, borderTop: dragOver ? "2px solid #4f46e5" : "2px solid transparent" }}
     >
-      {card.favIconUrl && <img src={card.favIconUrl} alt="" width={14} height={14} style={{ marginRight: 6 }} />}
-      <a href={card.url} target="_blank" rel="noreferrer">{card.title}</a>{" "}
-      <button onClick={() => deleteCard(collectionId, card.id)} aria-label="Remove card">×</button>
-      <div style={{ marginLeft: 20, fontSize: 12 }}>
+      <PageSummary card={card} />
+      <span className="row-note">
         <EditableText value={card.note ?? ""} placeholder="Add note" onSave={(n) => setCardNote(collectionId, card.id, n)} />
-      </div>
+      </span>
+      <button className="btn btn-quiet row-remove" onClick={() => deleteCard(collectionId, card.id)} aria-label={`Remove ${card.title}`}>
+        Remove
+      </button>
     </li>
   );
 }

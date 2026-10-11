@@ -10,17 +10,25 @@ interface Props {
 
 export function CollectionList({ collections, searching }: Props) {
   if (collections.length === 0) {
-    return <p>{searching ? "No matches." : "No collections yet. Save a session to get started."}</p>;
+    return (
+      <p className="empty">
+        {searching ? "Nothing matches that search." : "No collections yet. Open the toolbar popup and choose Save window to keep this window's tabs."}
+      </p>
+    );
   }
   return (
-    <ul style={{ listStyle: "none", padding: 0 }}>
+    <ul>
       {collections.map((c) => (
-        <li key={c.id} style={{ marginBottom: 20 }}>
-          <EditableText value={c.title} onSave={(t) => renameCollection(c.id, t)} style={{ fontWeight: 600 }} />{" "}
-          <small>({c.cards.length})</small>{" "}
-          <button onClick={() => openCollection(c)}>Open all</button>{" "}
-          <button onClick={() => deleteCollection(c.id)}>Delete</button>
-          <ul style={{ listStyle: "none" }}>
+        <li key={c.id} className="group">
+          <div className="group-head">
+            <EditableText className="group-title" value={c.title} onSave={(t) => renameCollection(c.id, t)} />
+            <span className="muted">{c.cards.length} {c.cards.length === 1 ? "page" : "pages"}</span>
+            <span className="group-actions">
+              <button className="btn" onClick={() => openCollection(c)}>Open all</button>
+              <button className="btn btn-quiet btn-danger" onClick={() => deleteCollection(c.id)}>Delete</button>
+            </span>
+          </div>
+          <ul className="rows">
             {c.cards.map((k) => (
               <CardRow key={k.id} collectionId={c.id} card={k} reorderable={!searching} />
             ))}
